@@ -1,20 +1,13 @@
 import React, { useState } from 'react';
 import {
   View, Text, StyleSheet, FlatList, TouchableOpacity,
-  TextInput, Alert, Modal, ScrollView,
+  TextInput, Alert, Modal, ScrollView, SafeAreaView,
 } from 'react-native';
-import { useSongs, songsStore, GENRES, VALID_KEYS, normalizeKey, isValidKey, type Song } from '../data/songs';
-import { colors, spacing, radius } from '../lib/theme';
+import { useSongs, songsStore, GENRES, normalizeKey, isValidKey, type Song } from '../data/songs';
+import { colors, spacing, radius, font } from '../lib/theme';
 import * as DocumentPicker from 'expo-document-picker';
 
-// ── Add/Edit Song Modal ───────────────────────────────────────────────────
-function SongModal({
-  visible, onClose, editSong,
-}: {
-  visible: boolean;
-  onClose: () => void;
-  editSong?: Song | null;
-}) {
+function SongModal({ visible, onClose, editSong }: { visible: boolean; onClose: () => void; editSong?: Song | null }) {
   const [title, setTitle] = useState(editSong?.title ?? '');
   const [artist, setArtist] = useState(editSong?.artist ?? '');
   const [key, setKey] = useState(editSong?.key ?? '');
@@ -28,14 +21,25 @@ function SongModal({
   const [genreOpen, setGenreOpen] = useState(false);
   const [saving, setSaving] = useState(false);
 
+  React.useEffect(() => {
+    setTitle(editSong?.title ?? '');
+    setArtist(editSong?.artist ?? '');
+    setKey(editSong?.key ?? '');
+    setBpm(editSong?.bpm ? String(editSong.bpm) : '');
+    setGenre(editSong?.genre ?? '');
+    setLyrics(editSong?.lyrics ?? '');
+    setInputMode(editSong?.lyrics ? 'text' : 'pdf');
+    setPdfUri(editSong?.pdfUri ?? '');
+    setPdfName(editSong?.pdfName ?? '');
+    setKeyError(false);
+    setGenreOpen(false);
+  }, [editSong, visible]);
+
   const canSave = title.trim() && artist.trim() && !keyError;
 
   async function pickPdf() {
     try {
-      const result = await DocumentPicker.getDocumentAsync({
-        type: 'application/pdf',
-        copyToCacheDirectory: true,
-      });
+      const result = await DocumentPicker.getDocumentAsync({ type: 'application/pdf', copyToCacheDirectory: true });
       if (!result.canceled && result.assets[0]) {
         setPdfUri(result.assets[0].uri);
         setPdfName(result.assets[0].name);
@@ -47,8 +51,7 @@ function SongModal({
     if (!canSave || saving) return;
     setSaving(true);
     const data = {
-      title: title.trim(),
-      artist: artist.trim(),
+      title: title.trim(), artist: artist.trim(),
       key: key.trim() ? normalizeKey(key) : '',
       genre: genre || undefined,
       bpm: bpm.trim() ? Number(bpm) : undefined,
@@ -56,185 +59,118 @@ function SongModal({
       pdfUri: inputMode === 'pdf' && pdfUri ? pdfUri : undefined,
       pdfName: inputMode === 'pdf' && pdfName ? pdfName : undefined,
     };
-    if (editSong) {
-      await songsStore.update(editSong.id, data);
-    } else {
-      await songsStore.add(data);
-    }
+    if (editSong) await songsStore.update(editSong.id, data);
+    else await songsStore.add(data);
     setSaving(false);
     onClose();
   }
 
   return (
     <Modal visible={visible} animationType="slide" presentationStyle="pageSheet" onRequestClose={onClose}>
-      <View style={styles.modalContainer}>
-        {/* Header */}
-        <View style={styles.modalHeader}>
+      <SafeAreaView style={m.container}>
+        <View style={m.header}>
           <TouchableOpacity onPress={onClose}>
-            <Text style={styles.cancelBtn}>Cancelar</Text>
+            <Text style={m.cancel}>Cancelar</Text>
           </TouchableOpacity>
-          <Text style={styles.modalTitle}>{editSong ? 'Editar Música' : 'Nova Música'}</Text>
+          <Text style={m.title}>{editSong ? 'Editar Música' : 'Nova Música'}</Text>
           <TouchableOpacity onPress={handleSave} disabled={!canSave || saving}>
-            <Text style={[styles.saveBtn, (!canSave || saving) && { opacity: 0.4 }]}>
-              {saving ? '...' : 'Salvar'}
-            </Text>
+            <Text style={[m.save, (!canSave || saving) && m.disabled]}>{saving ? '...' : 'Salvar'}</Text>
           </TouchableOpacity>
         </View>
 
-        <ScrollView style={styles.modalScroll} keyboardShouldPersistTaps="handled">
-          {/* Título */}
-          <View style={styles.fieldGroup}>
-            <Text style={styles.fieldLabel}>Título</Text>
-            <TextInput
-              style={styles.input}
-              value={title}
-              onChangeText={setTitle}
-              placeholder="Nome da música"
-              placeholderTextColor={colors.mutedForeground}
-              returnKeyType="next"
-            />
+        <ScrollView style={m.scroll} keyboardShouldPersistTaps="handled" contentContainerStyle={{ paddingBottom: 40 }}>
+          <View style={m.field}>
+            <Text style={m.label}>Título</Text>
+            <TextInput style={m.input} value={title} onChangeText={setTitle} placeholderTextColor={colors.mutedForeground} returnKeyType="next" />
+          </View>
+          <View style={m.field}>
+            <Text style={m.label}>Artista</Text>
+            <TextInput style={m.input} value={artist} onChangeText={setArtist} placeholderTextColor={colors.mutedForeground} returnKeyType="next" />
+          </View>
+          <View style={m.fieldRow}>
+            <View style={{ flex: 1 }}>
+              <Text style={m.label}>Tom <Text style={m.optional}>(opcional)</Text></Text>
+              <TextInput
+                style={[m.input, keyError && m.inputError]}
+                value={key}
+                onChangeText={v => { setKey(v); setKeyError(false); }}
+                onBlur={() => { if (key.trim() && !isValidKey(key)) setKeyError(true); else if (key.trim()) setKey(normalizeKey(key)); }}
+                maxLength={4} autoCapitalize="characters"
+                placeholderTextColor={colors.mutedForeground}
+              />
+              {keyError && <Text style={m.errorText}>Tom inválido</Text>}
+            </View>
+            <View style={{ flex: 1, marginLeft: spacing.sm }}>
+              <Text style={m.label}>BPM <Text style={m.optional}>(opcional)</Text></Text>
+              <TextInput style={m.input} value={bpm} onChangeText={setBpm} keyboardType="number-pad" placeholderTextColor={colors.mutedForeground} />
+            </View>
           </View>
 
-          {/* Artista */}
-          <View style={styles.fieldGroup}>
-            <Text style={styles.fieldLabel}>Artista</Text>
-            <TextInput
-              style={styles.input}
-              value={artist}
-              onChangeText={setArtist}
-              placeholder="Nome do artista"
-              placeholderTextColor={colors.mutedForeground}
-              returnKeyType="next"
-            />
-          </View>
-
-          {/* Tom */}
-          <View style={styles.fieldGroup}>
-            <Text style={styles.fieldLabel}>Tom <Text style={styles.optional}>(opcional)</Text></Text>
-            <TextInput
-              style={[styles.input, keyError && { borderColor: colors.destructive }]}
-              value={key}
-              onChangeText={v => { setKey(v); setKeyError(false); }}
-              onBlur={() => {
-                if (key.trim() && !isValidKey(key)) setKeyError(true);
-                else if (key.trim()) setKey(normalizeKey(key));
-              }}
-              placeholder="Ex: Am, G, C#"
-              placeholderTextColor={colors.mutedForeground}
-              maxLength={4}
-              autoCapitalize="characters"
-            />
-            {keyError && <Text style={styles.errorText}>Tom inválido. Ex: Am, C#, Bb</Text>}
-          </View>
-
-          {/* BPM */}
-          <View style={styles.fieldGroup}>
-            <Text style={styles.fieldLabel}>BPM <Text style={styles.optional}>(opcional)</Text></Text>
-            <TextInput
-              style={styles.input}
-              value={bpm}
-              onChangeText={setBpm}
-              placeholder="Ex: 120"
-              placeholderTextColor={colors.mutedForeground}
-              keyboardType="number-pad"
-            />
-          </View>
-
-          {/* Estilo */}
-          <View style={styles.fieldGroup}>
-            <Text style={styles.fieldLabel}>Estilo <Text style={styles.optional}>(opcional)</Text></Text>
-            <TouchableOpacity
-              style={styles.input}
-              onPress={() => setGenreOpen(!genreOpen)}
-              activeOpacity={0.7}
-            >
-              <Text style={genre ? styles.inputText : styles.placeholder}>
-                {genre || 'Selecione um estilo...'}
-              </Text>
+          <View style={m.field}>
+            <Text style={m.label}>Estilo <Text style={m.optional}>(opcional)</Text></Text>
+            <TouchableOpacity style={[m.input, m.picker]} onPress={() => setGenreOpen(!genreOpen)}>
+              <Text style={genre ? m.pickerText : m.pickerPlaceholder}>{genre || 'Selecione...'}</Text>
+              <Text style={m.chevron}>{genreOpen ? '▲' : '▼'}</Text>
             </TouchableOpacity>
             {genreOpen && (
-              <View style={styles.dropdown}>
-                <TouchableOpacity style={styles.dropdownItem} onPress={() => { setGenre(''); setGenreOpen(false); }}>
-                  <Text style={styles.dropdownItemText}>Nenhum</Text>
+              <View style={m.dropdown}>
+                <TouchableOpacity style={m.dropItem} onPress={() => { setGenre(''); setGenreOpen(false); }}>
+                  <Text style={m.dropText}>Nenhum</Text>
                 </TouchableOpacity>
                 {GENRES.map(g => (
-                  <TouchableOpacity key={g} style={styles.dropdownItem} onPress={() => { setGenre(g); setGenreOpen(false); }}>
-                    <Text style={[styles.dropdownItemText, genre === g && { color: colors.primary, fontWeight: '700' }]}>{g}</Text>
+                  <TouchableOpacity key={g} style={m.dropItem} onPress={() => { setGenre(g); setGenreOpen(false); }}>
+                    <Text style={[m.dropText, genre === g && m.dropTextActive]}>{g}</Text>
                   </TouchableOpacity>
                 ))}
               </View>
             )}
           </View>
 
-          {/* Modo PDF / Texto */}
-          <View style={styles.fieldGroup}>
-            <View style={styles.modeToggle}>
-              <TouchableOpacity
-                style={[styles.modeBtn, inputMode === 'pdf' && styles.modeBtnActive]}
-                onPress={() => setInputMode('pdf')}
-              >
-                <Text style={[styles.modeBtnText, inputMode === 'pdf' && styles.modeBtnTextActive]}>📄 PDF</Text>
+          <View style={m.field}>
+            <View style={m.modeRow}>
+              <TouchableOpacity style={[m.modeBtn, inputMode === 'pdf' && m.modeBtnActive]} onPress={() => setInputMode('pdf')}>
+                <Text style={[m.modeBtnText, inputMode === 'pdf' && m.modeBtnTextActive]}>📄 PDF</Text>
               </TouchableOpacity>
-              <TouchableOpacity
-                style={[styles.modeBtn, inputMode === 'text' && styles.modeBtnActive]}
-                onPress={() => setInputMode('text')}
-              >
-                <Text style={[styles.modeBtnText, inputMode === 'text' && styles.modeBtnTextActive]}>✏️ Digitar</Text>
+              <TouchableOpacity style={[m.modeBtn, inputMode === 'text' && m.modeBtnActive]} onPress={() => setInputMode('text')}>
+                <Text style={[m.modeBtnText, inputMode === 'text' && m.modeBtnTextActive]}>✏️ Digitar</Text>
               </TouchableOpacity>
             </View>
-
             {inputMode === 'pdf' ? (
-              <TouchableOpacity style={styles.pdfPicker} onPress={pickPdf}>
-                {pdfUri ? (
-                  <Text style={styles.pdfName}>{pdfName}</Text>
-                ) : (
-                  <Text style={styles.pdfPickerText}>Toque para selecionar PDF</Text>
-                )}
+              <TouchableOpacity style={m.pdfArea} onPress={pickPdf}>
+                {pdfUri ? <Text style={m.pdfName}>{pdfName}</Text> : <Text style={m.pdfPlaceholder}>Toque para selecionar PDF</Text>}
               </TouchableOpacity>
             ) : (
-              <TextInput
-                style={styles.textarea}
-                value={lyrics}
-                onChangeText={setLyrics}
-                placeholder={'[G]  [D]\nDigite a letra ou cifra aqui...'}
-                placeholderTextColor={colors.mutedForeground}
-                multiline
-                textAlignVertical="top"
-              />
+              <TextInput style={m.textarea} value={lyrics} onChangeText={setLyrics} multiline textAlignVertical="top" placeholderTextColor={colors.mutedForeground} />
             )}
           </View>
-
-          <View style={{ height: 40 }} />
         </ScrollView>
-      </View>
+      </SafeAreaView>
     </Modal>
   );
 }
 
-// ── Song Card ─────────────────────────────────────────────────────────────
 function SongCard({ song, onEdit, onDelete }: { song: Song; onEdit: () => void; onDelete: () => void }) {
   return (
-    <TouchableOpacity style={styles.card} onPress={onEdit} activeOpacity={0.7}>
-      <View style={styles.cardContent}>
-        <Text style={styles.cardTitle} numberOfLines={1}>{song.title}</Text>
-        <Text style={styles.cardArtist} numberOfLines={1}>{song.artist}</Text>
-        {song.genre && <Text style={styles.cardGenre}>{song.genre}</Text>}
+    <TouchableOpacity style={s.card} onPress={onEdit} activeOpacity={0.7}>
+      <View style={s.cardBody}>
+        <Text style={s.cardTitle} numberOfLines={1}>{song.title}</Text>
+        <Text style={s.cardArtist} numberOfLines={1}>{song.artist}</Text>
+        {song.genre ? <Text style={s.cardGenre}>{song.genre}</Text> : null}
       </View>
-      <View style={styles.cardRight}>
-        {song.key ? <View style={styles.keyBadge}><Text style={styles.keyBadgeText}>{song.key}</Text></View> : null}
-        {song.bpm ? <Text style={styles.bpmText}>{song.bpm}</Text> : null}
+      <View style={s.cardRight}>
+        {song.key ? <View style={s.badge}><Text style={s.badgeText}>{song.key}</Text></View> : null}
+        {song.bpm ? <Text style={s.bpm}>{song.bpm}</Text> : null}
         <TouchableOpacity onPress={() => Alert.alert('Excluir', `Excluir "${song.title}"?`, [
           { text: 'Cancelar', style: 'cancel' },
           { text: 'Excluir', style: 'destructive', onPress: onDelete },
-        ])}>
-          <Text style={styles.deleteBtn}>✕</Text>
+        ])} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
+          <Text style={s.del}>✕</Text>
         </TouchableOpacity>
       </View>
     </TouchableOpacity>
   );
 }
 
-// ── Songs Screen ──────────────────────────────────────────────────────────
 export default function SongsScreen() {
   const songs = useSongs();
   const [showModal, setShowModal] = useState(false);
@@ -247,151 +183,92 @@ export default function SongsScreen() {
   );
 
   return (
-    <View style={styles.container}>
-      {/* Header */}
-      <View style={styles.header}>
-        <Text style={styles.headerTitle}><Text style={styles.headerLight}>Show</Text><Text style={styles.headerBold}>Prod</Text></Text>
-        <TouchableOpacity style={styles.addBtn} onPress={() => { setEditSong(null); setShowModal(true); }}>
-          <Text style={styles.addBtnText}>+ Nova</Text>
+    <SafeAreaView style={s.container}>
+      <View style={s.header}>
+        <Text style={s.logo}><Text style={s.logoLight}>Show</Text><Text style={s.logoBold}>Prod</Text></Text>
+        <TouchableOpacity style={s.addBtn} onPress={() => { setEditSong(null); setShowModal(true); }}>
+          <Text style={s.addBtnText}>+ Nova música</Text>
         </TouchableOpacity>
       </View>
 
-      {/* Search */}
-      <View style={styles.searchContainer}>
-        <TextInput
-          style={styles.searchInput}
-          value={search}
-          onChangeText={setSearch}
-          placeholder="Buscar músicas..."
-          placeholderTextColor={colors.mutedForeground}
-          clearButtonMode="while-editing"
-        />
+      <View style={s.searchWrap}>
+        <TextInput style={s.search} value={search} onChangeText={setSearch}
+          placeholder="Buscar músicas..." placeholderTextColor={colors.mutedForeground} clearButtonMode="while-editing" />
       </View>
 
-      {/* List */}
       {filtered.length === 0 ? (
-        <View style={styles.empty}>
-          <Text style={styles.emptyTitle}>Nenhuma música</Text>
-          <Text style={styles.emptyText}>Toque em "+ Nova" para adicionar sua primeira música.</Text>
+        <View style={s.empty}>
+          <Text style={s.emptyTitle}>{search ? 'Nenhum resultado' : 'Nenhuma música'}</Text>
+          <Text style={s.emptyText}>{search ? 'Tente outra busca.' : 'Toque em "+ Nova música" para começar.'}</Text>
         </View>
       ) : (
-        <FlatList
-          data={filtered}
-          keyExtractor={s => s.id}
+        <FlatList data={filtered} keyExtractor={s => s.id} contentContainerStyle={s.list}
           renderItem={({ item }) => (
-            <SongCard
-              song={item}
-              onEdit={() => { setEditSong(item); setShowModal(true); }}
-              onDelete={() => songsStore.remove(item.id)}
-            />
-          )}
-          contentContainerStyle={styles.list}
-        />
+            <SongCard song={item} onEdit={() => { setEditSong(item); setShowModal(true); }} onDelete={() => songsStore.remove(item.id)} />
+          )} />
       )}
 
-      <SongModal
-        visible={showModal}
-        onClose={() => { setShowModal(false); setEditSong(null); }}
-        editSong={editSong}
-      />
-    </View>
+      <SongModal visible={showModal} onClose={() => { setShowModal(false); setEditSong(null); }} editSong={editSong} />
+    </SafeAreaView>
   );
 }
 
-const styles = StyleSheet.create({
+const s = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.background },
-  header: {
-    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
-    paddingHorizontal: spacing.md, paddingTop: spacing.md, paddingBottom: spacing.sm,
-    borderBottomWidth: 1, borderBottomColor: colors.border,
-  },
-  headerTitle: { fontSize: 24 },
-  headerLight: { fontWeight: '300', color: colors.foreground },
-  headerBold: { fontWeight: '900', color: colors.foreground },
-  addBtn: {
-    backgroundColor: colors.foreground, paddingHorizontal: 16,
-    paddingVertical: 8, borderRadius: radius.md,
-  },
-  addBtnText: { color: colors.white, fontWeight: '700', fontSize: 14 },
-  searchContainer: { padding: spacing.md, paddingBottom: spacing.sm },
-  searchInput: {
-    height: 44, backgroundColor: colors.card, borderRadius: radius.md,
-    borderWidth: 1, borderColor: colors.border, paddingHorizontal: spacing.md,
-    fontSize: 16, color: colors.foreground,
-  },
-  list: { padding: spacing.md, gap: spacing.sm },
-  card: {
-    backgroundColor: colors.card, borderRadius: radius.lg,
-    borderWidth: 1, borderColor: colors.border,
-    flexDirection: 'row', alignItems: 'center',
-    padding: spacing.md,
-  },
-  cardContent: { flex: 1, marginRight: spacing.sm },
-  cardTitle: { fontSize: 15, fontWeight: '600', color: colors.foreground },
-  cardArtist: { fontSize: 13, color: colors.mutedForeground, marginTop: 2 },
-  cardGenre: { fontSize: 11, color: colors.mutedForeground, marginTop: 2 },
+  header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: spacing.md, paddingVertical: spacing.sm, borderBottomWidth: 1, borderBottomColor: colors.border },
+  logo: { fontSize: 22 },
+  logoLight: { fontWeight: font.light, color: colors.foreground },
+  logoBold: { fontWeight: font.black, color: colors.foreground },
+  addBtn: { backgroundColor: colors.foreground, paddingHorizontal: 14, paddingVertical: 8, borderRadius: radius.md },
+  addBtnText: { color: colors.white, fontWeight: font.bold, fontSize: 13 },
+  searchWrap: { paddingHorizontal: spacing.md, paddingVertical: spacing.sm },
+  search: { height: 44, backgroundColor: colors.card, borderRadius: radius.md, borderWidth: 1, borderColor: colors.border, paddingHorizontal: spacing.md, fontSize: 15, color: colors.foreground },
+  list: { paddingHorizontal: spacing.md, paddingBottom: spacing.md, gap: spacing.sm },
+  card: { backgroundColor: colors.card, borderRadius: radius.lg, borderWidth: 1, borderColor: colors.border, flexDirection: 'row', alignItems: 'center', paddingHorizontal: spacing.md, paddingVertical: 12 },
+  cardBody: { flex: 1, marginRight: spacing.sm },
+  cardTitle: { fontSize: 15, fontWeight: font.semibold, color: colors.foreground },
+  cardArtist: { fontSize: 13, color: colors.mutedForeground, marginTop: 1 },
+  cardGenre: { fontSize: 11, color: colors.mutedForeground, marginTop: 1 },
   cardRight: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
-  keyBadge: {
-    backgroundColor: colors.foreground, paddingHorizontal: 8,
-    paddingVertical: 3, borderRadius: 6,
-  },
-  keyBadgeText: { color: colors.white, fontSize: 11, fontWeight: '700' },
-  bpmText: { fontSize: 11, color: colors.mutedForeground },
-  deleteBtn: { fontSize: 16, color: colors.mutedForeground, padding: 4 },
+  badge: { backgroundColor: colors.foreground, paddingHorizontal: 8, paddingVertical: 3, borderRadius: 6 },
+  badgeText: { color: colors.white, fontSize: 11, fontWeight: font.bold },
+  bpm: { fontSize: 11, color: colors.mutedForeground },
+  del: { fontSize: 15, color: colors.mutedForeground, padding: 4 },
   empty: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: spacing.xl },
-  emptyTitle: { fontSize: 18, fontWeight: '600', color: colors.foreground, marginBottom: 8 },
+  emptyTitle: { fontSize: 17, fontWeight: font.semibold, color: colors.foreground, marginBottom: 8 },
   emptyText: { fontSize: 14, color: colors.mutedForeground, textAlign: 'center' },
+});
 
-  // Modal
-  modalContainer: { flex: 1, backgroundColor: colors.background },
-  modalHeader: {
-    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
-    padding: spacing.md, borderBottomWidth: 1, borderBottomColor: colors.border,
-  },
-  modalTitle: { fontSize: 16, fontWeight: '600', color: colors.foreground },
-  cancelBtn: { fontSize: 16, color: colors.mutedForeground },
-  saveBtn: { fontSize: 16, fontWeight: '700', color: colors.primary },
-  modalScroll: { flex: 1 },
-  fieldGroup: { paddingHorizontal: spacing.md, paddingTop: spacing.md },
-  fieldLabel: { fontSize: 14, fontWeight: '600', color: colors.foreground, marginBottom: 8 },
-  optional: { fontWeight: '400', color: colors.mutedForeground },
-  input: {
-    height: 52, backgroundColor: colors.card, borderRadius: radius.md,
-    borderWidth: 1, borderColor: colors.border, paddingHorizontal: spacing.md,
-    fontSize: 16, color: colors.foreground, justifyContent: 'center',
-  },
-  inputText: { fontSize: 16, color: colors.foreground },
-  placeholder: { fontSize: 16, color: colors.mutedForeground },
+const m = StyleSheet.create({
+  container: { flex: 1, backgroundColor: colors.background },
+  header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: spacing.md, paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: colors.border },
+  title: { fontSize: 16, fontWeight: font.semibold, color: colors.foreground },
+  cancel: { fontSize: 15, color: colors.mutedForeground },
+  save: { fontSize: 15, fontWeight: font.bold, color: colors.foreground },
+  disabled: { opacity: 0.4 },
+  scroll: { flex: 1 },
+  field: { paddingHorizontal: spacing.md, paddingTop: spacing.md },
+  fieldRow: { flexDirection: 'row', paddingHorizontal: spacing.md, paddingTop: spacing.md },
+  label: { fontSize: 13, fontWeight: font.semibold, color: colors.foreground, marginBottom: 6 },
+  optional: { fontWeight: font.regular, color: colors.mutedForeground },
+  input: { height: 50, backgroundColor: colors.card, borderRadius: radius.md, borderWidth: 1, borderColor: colors.border, paddingHorizontal: spacing.md, fontSize: 15, color: colors.foreground },
+  inputError: { borderColor: colors.destructive },
   errorText: { fontSize: 12, color: colors.destructive, marginTop: 4 },
-  dropdown: {
-    backgroundColor: colors.card, borderRadius: radius.md,
-    borderWidth: 1, borderColor: colors.border, marginTop: 4,
-    maxHeight: 200, overflow: 'hidden',
-  },
-  dropdownItem: {
-    paddingHorizontal: spacing.md, paddingVertical: 12,
-    borderBottomWidth: 1, borderBottomColor: colors.border,
-  },
-  dropdownItemText: { fontSize: 15, color: colors.foreground },
-  modeToggle: {
-    flexDirection: 'row', backgroundColor: colors.muted,
-    borderRadius: radius.md, padding: 4, marginBottom: spacing.sm,
-  },
+  picker: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  pickerText: { fontSize: 15, color: colors.foreground },
+  pickerPlaceholder: { fontSize: 15, color: colors.mutedForeground },
+  chevron: { fontSize: 11, color: colors.mutedForeground },
+  dropdown: { backgroundColor: colors.card, borderRadius: radius.md, borderWidth: 1, borderColor: colors.border, marginTop: 4, maxHeight: 200, overflow: 'hidden' },
+  dropItem: { paddingHorizontal: spacing.md, paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: colors.border },
+  dropText: { fontSize: 14, color: colors.foreground },
+  dropTextActive: { fontWeight: font.bold, color: colors.primary },
+  modeRow: { flexDirection: 'row', backgroundColor: colors.muted, borderRadius: radius.md, padding: 4, marginBottom: spacing.sm },
   modeBtn: { flex: 1, paddingVertical: 8, borderRadius: radius.sm, alignItems: 'center' },
   modeBtnActive: { backgroundColor: colors.white },
-  modeBtnText: { fontSize: 14, color: colors.mutedForeground, fontWeight: '500' },
-  modeBtnTextActive: { color: colors.foreground, fontWeight: '700' },
-  pdfPicker: {
-    height: 80, backgroundColor: colors.card, borderRadius: radius.md,
-    borderWidth: 2, borderStyle: 'dashed', borderColor: colors.border,
-    alignItems: 'center', justifyContent: 'center',
-  },
-  pdfPickerText: { fontSize: 14, color: colors.mutedForeground },
-  pdfName: { fontSize: 14, color: colors.foreground, fontWeight: '500' },
-  textarea: {
-    backgroundColor: colors.card, borderRadius: radius.md,
-    borderWidth: 1, borderColor: colors.border, padding: spacing.md,
-    fontSize: 14, color: colors.foreground, minHeight: 200,
-    fontFamily: 'monospace',
-  },
+  modeBtnText: { fontSize: 13, color: colors.mutedForeground, fontWeight: font.medium },
+  modeBtnTextActive: { color: colors.foreground, fontWeight: font.bold },
+  pdfArea: { height: 80, backgroundColor: colors.card, borderRadius: radius.md, borderWidth: 2, borderStyle: 'dashed', borderColor: colors.border, alignItems: 'center', justifyContent: 'center' },
+  pdfName: { fontSize: 13, color: colors.foreground, fontWeight: font.medium },
+  pdfPlaceholder: { fontSize: 13, color: colors.mutedForeground },
+  textarea: { backgroundColor: colors.card, borderRadius: radius.md, borderWidth: 1, borderColor: colors.border, padding: spacing.md, fontSize: 13, color: colors.foreground, minHeight: 200, fontFamily: 'monospace' },
 });
