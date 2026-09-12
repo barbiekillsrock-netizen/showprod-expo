@@ -1,75 +1,98 @@
-import React, { useState, useRef, useCallback } from 'react';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
 import {
   View, Text, StyleSheet, TouchableOpacity, ScrollView,
-  Animated, PanResponder, Dimensions, StatusBar,
+  PanResponder, Dimensions, StatusBar, Alert,
 } from 'react-native';
-import { colors, spacing } from '../lib/theme';
+import { useKeepAwake } from 'expo-keep-awake';
+import { colors, spacing, font } from '../lib/theme';
 import type { Song } from '../data/songs';
+import Pdf from 'react-native-pdf';
 
-const { width: SCREEN_WIDTH } = Dimensions.get('window');
-const SWIPE_THRESHOLD = 80;
+const { width: W } = Dimensions.get('window');
+const SWIPE_THRESHOLD = 60;
 
 export default function PerformanceScreen({ route, navigation }: any) {
   const { songs, setlistName } = route.params as { songs: Song[]; setlistName: string };
+
+  // Manter tela ligada durante o show
+  useKeepAwake();
+
   const [activeIdx, setActiveIdx] = useState(0);
+  const [darkMode, setDarkMode] = useState(true);
   const [autoScroll, setAutoScroll] = useState(false);
   const [scrollSpeed, setScrollSpeed] = useState(3);
-  const [darkMode, setDarkMode] = useState(true);
   const [fontSize, setFontSize] = useState(18);
   const [elapsed, setElapsed] = useState(0);
+  const [timerRunning, setTimerRunning] = useState(true);
+  const [showControls, setShowControls] = useState(true);
+
   const scrollRef = useRef<ScrollView>(null);
-  const timerRef = useRef<ReturnType<typeof setInterval>>();
   const autoScrollRef = useRef<ReturnType<typeof setInterval>>();
+  const timerRef = useRef<ReturnType<typeof setInterval>>();
+  const scrollOffsetRef = useRef(0);
 
   const activeSong = songs[activeIdx];
   const hasLyrics = !!activeSong?.lyrics && !activeSong?.hasPdf;
+  const hasPdf = !!activeSong?.pdfUri;
 
   // Timer
-  React.useEffect(() => {
-    timerRef.current = setInterval(() => setElapsed(e => e + 1), 1000);
+  useEffect(() => {
+    if (timerRunning) {
+      timerRef.current = setInterval(() => setElapsed(e => e + 1), 1000);
+    } else {
+      if (timerRef.current) clearInterval(timerRef.current);
+    }
     return () => { if (timerRef.current) clearInterval(timerRef.current); };
-  }, []);
+  }, [timerRunning]);
 
   // Auto scroll
-  React.useEffect(() => {
+  useEffect(() => {
     if (!autoScroll || !hasLyrics) {
       if (autoScrollRef.current) clearInterval(autoScrollRef.current);
       return;
     }
-    let offset = 0;
     autoScrollRef.current = setInterval(() => {
-      offset += scrollSpeed * 0.5;
-      scrollRef.current?.scrollTo({ y: offset, animated: false });
+      scrollOffsetRef.current += scrollSpeed * 0.4;
+      scrollRef.current?.scrollTo({ y: scrollOffsetRef.current, animated: false });
     }, 16);
     return () => { if (autoScrollRef.current) clearInterval(autoScrollRef.current); };
   }, [autoScroll, scrollSpeed, hasLyrics]);
 
   // Reset ao trocar música
-  React.useEffect(() => {
+  useEffect(() => {
     setAutoScroll(false);
+    scrollOffsetRef.current = 0;
     scrollRef.current?.scrollTo({ y: 0, animated: false });
   }, [activeIdx]);
 
   function formatTime(s: number) {
-    const m = Math.floor(s / 60);
+    const h = Math.floor(s / 3600);
+    const m = Math.floor((s % 3600) / 60);
     const sec = s % 60;
+    if (h > 0) return `${h}:${String(m).padStart(2, '0')}:${String(sec).padStart(2, '0')}`;
     return `${String(m).padStart(2, '0')}:${String(sec).padStart(2, '0')}`;
   }
 
-  // Swipe para trocar de música
+  function goPrev() {
+    if (activeIdx > 0) setActiveIdx(i => i - 1);
+  }
+
+  function goNext() {
+    if (activeIdx < songs.length - 1) setActiveIdx(i => i + 1);
+  }
+
+  // Swipe para trocar música
   const panResponder = PanResponder.create({
-    onMoveShouldSetPanResponder: (_, g) => Math.abs(g.dx) > 20 && Math.abs(g.dx) > Math.abs(g.dy),
+    onMoveShouldSetPanResponder: (_, g) => Math.abs(g.dx) > 20 && Math.abs(g.dx) > Math.abs(g.dy) * 1.5,
     onPanResponderRelease: (_, g) => {
-      if (g.dx < -SWIPE_THRESHOLD && activeIdx < songs.length - 1) {
-        setActiveIdx(i => i + 1);
-      } else if (g.dx > SWIPE_THRESHOLD && activeIdx > 0) {
-        setActiveIdx(i => i - 1);
-      }
+      if (g.dx < -SWIPE_THRESHOLD) goNext();
+      else if (g.dx > SWIPE_THRESHOLD) goPrev();
     },
   });
 
-  const bg = darkMode ? colors.darkBg : '#FFFFFF';
-  const textColor = darkMode ? colors.darkText : colors.foreground;
+  const bg = darkMode ? '#0C0B09' : '#FFFFFF';
+  const textColor = darkMode ? '#E8E0D0' : '#111111';
+  const controlBg = 'rgba(0,0,0,0.6)';
 
   return (
     <View style={[styles.container, { backgroundColor: bg }]}>
@@ -77,94 +100,127 @@ export default function PerformanceScreen({ route, navigation }: any) {
 
       {/* Top bar */}
       <View style={styles.topBar}>
-        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.exitBtn}>
-          <Text style={styles.exitText}>← Sair</Text>
-        </TouchableOpacity>
+        {/* Esquerda: Sair + Timer */}
+        <View style={styles.topLeft}>
+          <TouchableOpacity
+            style={[styles.pill, { backgroundColor: controlBg }]}
+            onPress={() => navigation.goBack()}
+          >
+            <Text style={styles.pillText}>← Sair</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[styles.pill, { backgroundColor: controlBg }]}
+            onPress={() => setTimerRunning(r => !r)}
+          >
+            <Text style={styles.pillText}>{formatTime(elapsed)}</Text>
+          </TouchableOpacity>
+        </View>
 
-        <View style={styles.songInfo}>
+        {/* Centro: Música atual */}
+        <View style={styles.topCenter}>
           {activeSong?.key && (
-            <View style={styles.keyBadge}><Text style={styles.keyBadgeText}>{activeSong.key}</Text></View>
+            <View style={styles.keyBadge}>
+              <Text style={styles.keyBadgeText}>{activeSong.key}</Text>
+            </View>
           )}
           <Text style={styles.songTitle} numberOfLines={1}>{activeSong?.title}</Text>
           <Text style={styles.songCount}>{activeIdx + 1}/{songs.length}</Text>
         </View>
 
+        {/* Direita: Dark mode */}
         <View style={styles.topRight}>
-          <Text style={styles.timer}>{formatTime(elapsed)}</Text>
-          <TouchableOpacity onPress={() => setDarkMode(d => !d)} style={styles.iconBtn}>
-            <Text style={styles.iconText}>{darkMode ? '🌙' : '☀️'}</Text>
+          <TouchableOpacity
+            style={[styles.pill, { backgroundColor: darkMode ? colors.amber : controlBg }]}
+            onPress={() => setDarkMode(d => !d)}
+          >
+            <Text style={[styles.pillText, darkMode && { color: '#0C0B09' }]}>
+              {darkMode ? '🌙' : '☀️'}
+            </Text>
           </TouchableOpacity>
         </View>
       </View>
 
-      {/* Controls */}
-      <View style={styles.controls}>
-        {hasLyrics && (
-          <>
-            <TouchableOpacity
-              style={[styles.controlBtn, autoScroll && styles.controlBtnActive]}
-              onPress={() => setAutoScroll(a => !a)}
-            >
-              <Text style={[styles.controlBtnText, autoScroll && styles.controlBtnTextActive]}>
-                {autoScroll ? '⏸ Parar' : '▶ Auto'}
-              </Text>
-            </TouchableOpacity>
-            <TouchableOpacity style={styles.iconBtn} onPress={() => setScrollSpeed(s => Math.max(1, s - 1))}>
-              <Text style={styles.iconText}>↓</Text>
-            </TouchableOpacity>
-            <Text style={styles.speedText}>{scrollSpeed}</Text>
-            <TouchableOpacity style={styles.iconBtn} onPress={() => setScrollSpeed(s => Math.min(10, s + 1))}>
-              <Text style={styles.iconText}>↑</Text>
-            </TouchableOpacity>
-            <TouchableOpacity style={styles.iconBtn} onPress={() => setFontSize(s => Math.max(12, s - 2))}>
-              <Text style={styles.iconText}>A-</Text>
-            </TouchableOpacity>
-            <TouchableOpacity style={styles.iconBtn} onPress={() => setFontSize(s => Math.min(40, s + 2))}>
-              <Text style={styles.iconText}>A+</Text>
-            </TouchableOpacity>
-          </>
-        )}
-      </View>
+      {/* Controls linha 2 */}
+      {hasLyrics && (
+        <View style={styles.controls}>
+          <TouchableOpacity
+            style={[styles.controlBtn, autoScroll && styles.controlBtnActive]}
+            onPress={() => setAutoScroll(a => !a)}
+          >
+            <Text style={[styles.controlText, autoScroll && styles.controlTextActive]}>
+              {autoScroll ? '⏸ Parar' : '▶ Auto'}
+            </Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.controlBtn} onPress={() => setScrollSpeed(s => Math.max(1, s - 1))}>
+            <Text style={styles.controlText}>↓</Text>
+          </TouchableOpacity>
+          <Text style={styles.speedText}>{scrollSpeed}</Text>
+          <TouchableOpacity style={styles.controlBtn} onPress={() => setScrollSpeed(s => Math.min(10, s + 1))}>
+            <Text style={styles.controlText}>↑</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.controlBtn} onPress={() => setFontSize(s => Math.max(12, s - 2))}>
+            <Text style={styles.controlText}>A-</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.controlBtn} onPress={() => setFontSize(s => Math.min(40, s + 2))}>
+            <Text style={styles.controlText}>A+</Text>
+          </TouchableOpacity>
+        </View>
+      )}
 
-      {/* Content */}
-      <View style={styles.stage} {...panResponder.panHandlers}>
+      {/* Stage */}
+      <View style={styles.stage} {...(hasLyrics ? {} : panResponder.panHandlers)}>
         {hasLyrics ? (
           <ScrollView
             ref={scrollRef}
-            style={styles.lyricsScroll}
-            onTouchStart={() => autoScroll && setAutoScroll(false)}
+            style={[styles.lyricsScroll, { backgroundColor: bg }]}
+            onScrollBeginDrag={() => autoScroll && setAutoScroll(false)}
+            onScroll={e => { scrollOffsetRef.current = e.nativeEvent.contentOffset.y; }}
+            scrollEventThrottle={16}
+            {...panResponder.panHandlers}
           >
-            <Text style={[styles.lyricsText, { fontSize, color: textColor }]}>
-              {activeSong?.lyrics}
-            </Text>
-            <View style={{ height: 400 }} />
+            <TouchableOpacity activeOpacity={1} onPress={() => setAutoScroll(a => !a)}>
+              <Text style={[styles.lyricsText, { fontSize, color: textColor, lineHeight: fontSize * 1.6 }]}>
+                {activeSong?.lyrics}
+              </Text>
+              <View style={{ height: 400 }} />
+            </TouchableOpacity>
           </ScrollView>
-        ) : activeSong?.pdfUri ? (
-          <View style={styles.pdfPlaceholder}>
-            <Text style={{ color: '#fff', fontSize: 16 }}>PDF: {activeSong.pdfName}</Text>
-            <Text style={{ color: colors.darkMuted, fontSize: 12, marginTop: 8 }}>
-              Visualizador de PDF em desenvolvimento
-            </Text>
-          </View>
+        ) : hasPdf ? (
+          <Pdf
+            source={{ uri: activeSong.pdfUri, cache: true }}
+            style={[styles.pdf, { backgroundColor: bg }]}
+            fitPolicy={0}
+            horizontal
+            enablePaging
+            renderActivityIndicator={() => (
+              <View style={styles.pdfLoading}>
+                <Text style={{ color: '#fff' }}>Carregando PDF...</Text>
+              </View>
+            )}
+            onError={() => Alert.alert('Erro', 'Não foi possível carregar o PDF.')}
+          />
         ) : (
-          <View style={styles.pdfPlaceholder}>
-            <Text style={{ color: colors.darkMuted }}>Nenhum conteúdo</Text>
+          <View style={styles.noContent}>
+            <Text style={{ color: colors.darkMuted, fontSize: 16 }}>Nenhum conteúdo</Text>
+            <Text style={{ color: colors.darkMuted, fontSize: 13, marginTop: 8 }}>
+              Adicione um PDF ou texto à música
+            </Text>
           </View>
         )}
       </View>
 
       {/* Próxima música */}
-      {activeIdx < songs.length - 1 ? (
-        <View style={styles.nextSong}>
-          <Text style={styles.nextSongLabel}>A seguir: </Text>
-          <Text style={styles.nextSongTitle}>{songs[activeIdx + 1].title}</Text>
-          <Text style={styles.nextSongArtist}> — {songs[activeIdx + 1].artist}</Text>
-        </View>
-      ) : (
-        <View style={styles.nextSong}>
-          <Text style={styles.nextSongLabel}>✕ Última música do show</Text>
-        </View>
-      )}
+      <View style={styles.nextSong}>
+        {activeIdx < songs.length - 1 ? (
+          <>
+            <Text style={styles.nextLabel}>A seguir: </Text>
+            <Text style={styles.nextTitle} numberOfLines={1}>{songs[activeIdx + 1].title}</Text>
+            <Text style={styles.nextArtist}> — {songs[activeIdx + 1].artist}</Text>
+          </>
+        ) : (
+          <Text style={styles.nextLabel}>✕ Última música do show</Text>
+        )}
+      </View>
     </View>
   );
 }
@@ -173,43 +229,42 @@ const styles = StyleSheet.create({
   container: { flex: 1 },
   topBar: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
-    paddingHorizontal: spacing.md, paddingTop: spacing.md, paddingBottom: spacing.sm,
+    paddingHorizontal: spacing.md, paddingTop: spacing.sm, paddingBottom: spacing.sm,
   },
-  exitBtn: { paddingVertical: 8, paddingRight: spacing.sm },
-  exitText: { color: 'rgba(255,255,255,0.7)', fontSize: 14 },
-  songInfo: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: spacing.sm, justifyContent: 'center' },
+  topLeft: { flexDirection: 'row', gap: spacing.sm, flex: 1 },
+  topCenter: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, flex: 2, justifyContent: 'center' },
+  topRight: { flex: 1, alignItems: 'flex-end' },
+  pill: { paddingHorizontal: 10, paddingVertical: 6, borderRadius: 20 },
+  pillText: { color: 'rgba(255,255,255,0.8)', fontSize: 12, fontWeight: font.medium },
   keyBadge: { backgroundColor: colors.amber, paddingHorizontal: 8, paddingVertical: 2, borderRadius: 6 },
-  keyBadgeText: { color: colors.darkBg, fontSize: 11, fontWeight: '700' },
-  songTitle: { fontSize: 14, fontWeight: '500', color: 'rgba(255,255,255,0.9)', maxWidth: 160 },
+  keyBadgeText: { color: '#0C0B09', fontSize: 11, fontWeight: font.bold },
+  songTitle: { fontSize: 13, fontWeight: font.medium, color: 'rgba(255,255,255,0.9)', maxWidth: 140 },
   songCount: { fontSize: 11, color: 'rgba(255,255,255,0.4)' },
-  topRight: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
-  timer: { fontSize: 12, color: 'rgba(255,255,255,0.6)', fontVariant: ['tabular-nums'] },
-  iconBtn: { padding: 8 },
-  iconText: { fontSize: 16, color: 'rgba(255,255,255,0.7)' },
   controls: {
     flexDirection: 'row', alignItems: 'center', gap: spacing.sm,
-    paddingHorizontal: spacing.md, paddingBottom: spacing.sm,
+    paddingHorizontal: spacing.md, paddingBottom: spacing.sm, flexWrap: 'wrap',
   },
   controlBtn: {
-    paddingHorizontal: 12, paddingVertical: 6, borderRadius: 8,
-    borderWidth: 1, borderColor: 'rgba(255,255,255,0.15)',
-    backgroundColor: 'rgba(0,0,0,0.4)',
+    paddingHorizontal: 10, paddingVertical: 6, borderRadius: 8,
+    backgroundColor: 'rgba(0,0,0,0.5)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.15)',
   },
   controlBtnActive: { backgroundColor: colors.amber, borderColor: colors.amber },
-  controlBtnText: { fontSize: 12, color: 'rgba(255,255,255,0.7)', fontWeight: '500' },
-  controlBtnTextActive: { color: colors.darkBg, fontWeight: '700' },
-  speedText: { fontSize: 12, color: 'rgba(255,255,255,0.5)', width: 16, textAlign: 'center' },
+  controlText: { color: 'rgba(255,255,255,0.8)', fontSize: 12, fontWeight: font.medium },
+  controlTextActive: { color: '#0C0B09', fontWeight: font.bold },
+  speedText: { color: 'rgba(255,255,255,0.5)', fontSize: 12, width: 16, textAlign: 'center' },
   stage: { flex: 1 },
-  lyricsScroll: { flex: 1, paddingHorizontal: spacing.lg, paddingTop: spacing.md },
-  lyricsText: { fontFamily: 'monospace', lineHeight: 28 },
-  pdfPlaceholder: { flex: 1, alignItems: 'center', justifyContent: 'center' },
+  lyricsScroll: { flex: 1 },
+  lyricsText: { paddingHorizontal: spacing.lg, paddingTop: spacing.md, fontFamily: 'monospace' },
+  pdf: { flex: 1, width: W },
+  pdfLoading: { flex: 1, alignItems: 'center', justifyContent: 'center' },
+  noContent: { flex: 1, alignItems: 'center', justifyContent: 'center' },
   nextSong: {
-    flexDirection: 'row', alignItems: 'center',
     position: 'absolute', bottom: spacing.md, right: spacing.md,
+    flexDirection: 'row', alignItems: 'center',
     backgroundColor: 'rgba(0,0,0,0.6)', paddingHorizontal: 12,
-    paddingVertical: 6, borderRadius: 8, maxWidth: 280,
+    paddingVertical: 6, borderRadius: 8, maxWidth: 260,
   },
-  nextSongLabel: { fontSize: 11, color: 'rgba(255,255,255,0.4)' },
-  nextSongTitle: { fontSize: 11, color: 'rgba(255,255,255,0.8)', fontWeight: '500' },
-  nextSongArtist: { fontSize: 11, color: 'rgba(255,255,255,0.4)' },
+  nextLabel: { fontSize: 11, color: 'rgba(255,255,255,0.4)' },
+  nextTitle: { fontSize: 11, color: 'rgba(255,255,255,0.8)', fontWeight: font.medium, maxWidth: 140 },
+  nextArtist: { fontSize: 11, color: 'rgba(255,255,255,0.4)' },
 });
