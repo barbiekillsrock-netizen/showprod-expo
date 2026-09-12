@@ -5,6 +5,7 @@ import {
 } from 'react-native';
 import { useSongs, songsStore, GENRES, normalizeKey, isValidKey, type Song } from '../data/songs';
 import { colors, spacing, radius, font } from '../lib/theme';
+import { useNavigation } from '@react-navigation/native';
 import * as DocumentPicker from 'expo-document-picker';
 
 function SongModal({ visible, onClose, editSong }: { visible: boolean; onClose: () => void; editSong?: Song | null }) {
@@ -20,6 +21,7 @@ function SongModal({ visible, onClose, editSong }: { visible: boolean; onClose: 
   const [pdfName, setPdfName] = useState(editSong?.pdfName ?? '');
   const [genreOpen, setGenreOpen] = useState(false);
   const [saving, setSaving] = useState(false);
+  const navigation = useNavigation<any>();
 
   React.useEffect(() => {
     setTitle(editSong?.title ?? '');
@@ -271,4 +273,6 @@ const m = StyleSheet.create({
   pdfName: { fontSize: 13, color: colors.foreground, fontWeight: font.medium },
   pdfPlaceholder: { fontSize: 13, color: colors.mutedForeground },
   textarea: { backgroundColor: colors.card, borderRadius: radius.md, borderWidth: 1, borderColor: colors.border, padding: spacing.md, fontSize: 13, color: colors.foreground, minHeight: 200, fontFamily: 'monospace' },
+  annotateBtn: { backgroundColor: colors.foreground, borderRadius: radius.md, padding: spacing.sm, alignItems: 'center', marginTop: spacing.sm },
+  annotateBtnText: { color: colors.white, fontWeight: font.bold, fontSize: 14 },
 });
