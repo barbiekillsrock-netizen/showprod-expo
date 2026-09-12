@@ -258,7 +258,7 @@ const m = StyleSheet.create({
   pickerText: { fontSize: 15, color: colors.foreground },
   pickerPlaceholder: { fontSize: 15, color: colors.mutedForeground },
   chevron: { fontSize: 11, color: colors.mutedForeground },
-  dropdown: { backgroundColor: colors.card, borderRadius: radius.md, borderWidth: 1, borderColor: colors.border, marginTop: 4, maxHeight: 200, overflow: 'hidden' },
+  dropdown: { backgroundColor: colors.card, borderRadius: radius.md, borderWidth: 1, borderColor: colors.border, marginTop: 4, maxHeight: 320, overflow: 'hidden' },
   dropItem: { paddingHorizontal: spacing.md, paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: colors.border },
   dropText: { fontSize: 14, color: colors.foreground },
   dropTextActive: { fontWeight: font.bold, color: colors.primary },
