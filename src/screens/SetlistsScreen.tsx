@@ -14,14 +14,20 @@ export default function SetlistsScreen() {
   const navigation = useNavigation<any>();
   const [creating, setCreating] = useState(false);
   const [newName, setNewName] = useState('');
+  const newNameRef = React.useRef('');
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editingSongs, setEditingSongs] = useState(false);
   const [currentSetlist, setCurrentSetlist] = useState<Setlist | null>(null);
 
   async function handleCreate() {
-    if (!newName.trim()) return;
-    await setlistsStore.create(newName);
+    const name = newNameRef.current.trim() || newName.trim();
+    if (!name) {
+      Alert.alert('Nome obrigatório', 'Digite um nome para o setlist.');
+      return;
+    }
+    await setlistsStore.create(name);
     setNewName('');
+    newNameRef.current = '';
     setCreating(false);
   }
 
@@ -53,7 +59,7 @@ export default function SetlistsScreen() {
           <TextInput
             style={styles.createInput}
             value={newName}
-            onChangeText={setNewName}
+            onChangeText={v => { setNewName(v); newNameRef.current = v; }}
             placeholder="Nome do setlist..."
             placeholderTextColor={colors.mutedForeground}
             autoFocus
