@@ -6,7 +6,6 @@ import {
 import { useKeepAwake } from 'expo-keep-awake';
 import { colors, spacing, font } from '../lib/theme';
 import type { Song } from '../data/songs';
-import { WebView } from 'react-native-webview';
 
 const { width: W } = Dimensions.get('window');
 const SWIPE_THRESHOLD = 60;
@@ -186,22 +185,15 @@ export default function PerformanceScreen({ route, navigation }: any) {
             </TouchableOpacity>
           </ScrollView>
         ) : hasPdf ? (
-          <View style={{ flex: 1 }}>
-            <WebView
-              source={{ uri: activeSong.pdfUri }}
-              style={[styles.pdf, darkMode && { filter: 'invert(1)' }]}
-              originWhitelist={['*']}
-              injectedJavaScript={darkMode ? `document.body.style.filter='invert(1) grayscale(0.5)'; true;` : ''}
-              startInLoadingState
-              renderLoading={() => (
-                <View style={styles.pdfLoading}>
-                  <Text style={{ color: '#fff' }}>Carregando PDF...</Text>
-                </View>
-              )}
-            />
-            {darkMode && (
-              <View style={styles.pdfDarkOverlay} pointerEvents="none" />
-            )}
+          <View style={[styles.pdfContainer, { backgroundColor: darkMode ? '#0C0B09' : '#f5f5f5' }]}>
+            <Text style={styles.pdfIcon}>📄</Text>
+            <Text style={[styles.pdfName, { color: darkMode ? '#E8E0D0' : '#333' }]} numberOfLines={2}>
+              {activeSong.pdfName || 'PDF'}
+            </Text>
+            <Text style={{ color: darkMode ? colors.amber : '#666', fontSize: 12, marginTop: 8, textAlign: 'center' }}>
+              Visualizador de PDF em desenvolvimento.{'
+'}Use o Editor para adicionar texto/cifra.
+            </Text>
           </View>
         ) : (
           <View style={styles.noContent}>
@@ -260,6 +252,9 @@ const styles = StyleSheet.create({
   lyricsScroll: { flex: 1 },
   lyricsText: { paddingHorizontal: spacing.lg, paddingTop: spacing.md, fontFamily: 'monospace' },
   pdf: { flex: 1, width: W },
+  pdfContainer: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 32 },
+  pdfIcon: { fontSize: 64, marginBottom: 16 },
+  pdfName: { fontSize: 18, fontWeight: '600', textAlign: 'center' },
   pdfLoading: { flex: 1, alignItems: 'center', justifyContent: 'center' },
   noContent: { flex: 1, alignItems: 'center', justifyContent: 'center' },
   pdfDarkOverlay: {
