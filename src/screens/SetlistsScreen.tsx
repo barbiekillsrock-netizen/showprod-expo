@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import {
-  View, Text, StyleSheet, FlatList, TouchableOpacity,
+  View, Text, StyleSheet, Platform, StatusBar as RNStatusBar, FlatList, TouchableOpacity,
   TextInput, Alert, Modal, ScrollView,
 } from 'react-native';
 import { useSetlists, setlistsStore, type Setlist } from '../data/setlists';
@@ -257,7 +257,7 @@ function SetlistEditorModal({
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: colors.background },
+  container: { flex: 1, backgroundColor: colors.background, paddingTop: Platform.OS === 'android' ? RNStatusBar.currentHeight ?? 24 : 0 },
   header: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
     padding: spacing.md, borderBottomWidth: 1, borderBottomColor: colors.border,
@@ -291,7 +291,7 @@ const styles = StyleSheet.create({
 });
 
 const editorStyles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: colors.background },
+  container: { flex: 1, backgroundColor: colors.background, paddingTop: Platform.OS === 'android' ? RNStatusBar.currentHeight ?? 24 : 0 },
   header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: spacing.md, borderBottomWidth: 1, borderBottomColor: colors.border },
   title: { fontSize: 16, fontWeight: '600', color: colors.foreground },
   cancel: { fontSize: 16, color: colors.mutedForeground },

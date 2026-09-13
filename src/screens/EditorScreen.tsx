@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import {
-  View, Text, StyleSheet, FlatList, TouchableOpacity,
+  View, Text, StyleSheet, Platform, StatusBar as RNStatusBar, FlatList, TouchableOpacity,
   TextInput, Modal, ScrollView,
 } from 'react-native';
 import { useSongs, songsStore, normalizeKey, isValidKey, type Song } from '../data/songs';
@@ -160,7 +160,7 @@ export default function EditorScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: colors.background },
+  container: { flex: 1, backgroundColor: colors.background, paddingTop: Platform.OS === 'android' ? RNStatusBar.currentHeight ?? 24 : 0 },
   header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: spacing.md, borderBottomWidth: 1, borderBottomColor: colors.border },
   title: { fontSize: 24, fontWeight: '300', color: colors.foreground },
   addBtn: { backgroundColor: colors.foreground, paddingHorizontal: 16, paddingVertical: 8, borderRadius: radius.md },
@@ -182,7 +182,7 @@ const styles = StyleSheet.create({
 });
 
 const edStyles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: colors.background },
+  container: { flex: 1, backgroundColor: colors.background, paddingTop: Platform.OS === 'android' ? RNStatusBar.currentHeight ?? 24 : 0 },
   header: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, padding: spacing.sm, borderBottomWidth: 1, borderBottomColor: colors.border },
   back: { fontSize: 14, color: colors.mutedForeground, padding: 8 },
   headerMeta: { flex: 1 },

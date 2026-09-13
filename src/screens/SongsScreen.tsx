@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import {
-  View, Text, StyleSheet, FlatList, TouchableOpacity,
+  View, Text, StyleSheet, Platform, StatusBar as RNStatusBar, FlatList, TouchableOpacity,
   TextInput, Alert, Modal, ScrollView, SafeAreaView,
 } from 'react-native';
 import { useSongs, songsStore, GENRES, normalizeKey, isValidKey, type Song } from '../data/songs';
@@ -237,7 +237,7 @@ export default function SongsScreen() {
 }
 
 const s = StyleSheet.create({
-  container: { flex: 1, backgroundColor: colors.background },
+  container: { flex: 1, backgroundColor: colors.background, paddingTop: Platform.OS === 'android' ? RNStatusBar.currentHeight ?? 24 : 0 },
   header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: spacing.md, paddingVertical: spacing.sm, borderBottomWidth: 1, borderBottomColor: colors.border },
   logo: { fontSize: 22 },
   logoLight: { fontWeight: font.light, color: colors.foreground },
@@ -267,7 +267,7 @@ const s = StyleSheet.create({
 });
 
 const m = StyleSheet.create({
-  container: { flex: 1, backgroundColor: colors.background },
+  container: { flex: 1, backgroundColor: colors.background, paddingTop: Platform.OS === 'android' ? RNStatusBar.currentHeight ?? 24 : 0 },
   header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: spacing.md, paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: colors.border },
   title: { fontSize: 16, fontWeight: font.semibold, color: colors.foreground },
   cancel: { fontSize: 15, color: colors.mutedForeground },
