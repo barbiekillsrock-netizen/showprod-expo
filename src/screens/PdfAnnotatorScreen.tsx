@@ -3,7 +3,7 @@ import {
   View, Text, StyleSheet, TouchableOpacity, Alert,
   PanResponder, Dimensions, SafeAreaView, StatusBar,
 } from 'react-native';
-import Pdf from 'react-native-pdf';
+import { WebView } from 'react-native-webview';
 import Svg, { Path } from 'react-native-svg';
 import { loadAnnotations, saveAnnotations, clearAnnotations, type Stroke, type Point } from '../lib/annotations';
 import { colors, spacing, font } from '../lib/theme';
@@ -120,11 +120,11 @@ export default function PdfAnnotatorScreen({ route, navigation }: any) {
       {/* PDF + Canvas */}
       <View style={s.stage} {...(tool === null ? {} : panResponder.panHandlers)}>
         {/* PDF */}
-        <Pdf
-          source={{ uri: pdfUri, cache: true }}
+        <WebView
+          source={{ uri: pdfUri }}
           style={s.pdf}
-          fitPolicy={0}
-          onError={() => Alert.alert('Erro', 'Não foi possível carregar o PDF.')}
+          originWhitelist={['*']}
+          startInLoadingState
         />
 
         {/* SVG Canvas de anotações */}

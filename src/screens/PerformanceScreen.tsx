@@ -6,7 +6,7 @@ import {
 import { useKeepAwake } from 'expo-keep-awake';
 import { colors, spacing, font } from '../lib/theme';
 import type { Song } from '../data/songs';
-import Pdf from 'react-native-pdf';
+import { WebView } from 'react-native-webview';
 
 const { width: W } = Dimensions.get('window');
 const SWIPE_THRESHOLD = 60;
@@ -187,26 +187,21 @@ export default function PerformanceScreen({ route, navigation }: any) {
           </ScrollView>
         ) : hasPdf ? (
           <View style={{ flex: 1 }}>
-            <Pdf
-              source={{ uri: activeSong.pdfUri, cache: true }}
-              style={styles.pdf}
-              fitPolicy={0}
-              horizontal
-              enablePaging
-              renderActivityIndicator={() => (
+            <WebView
+              source={{ uri: activeSong.pdfUri }}
+              style={[styles.pdf, darkMode && { filter: 'invert(1)' }]}
+              originWhitelist={['*']}
+              injectedJavaScript={darkMode ? `document.body.style.filter='invert(1) grayscale(0.5)'; true;` : ''}
+              startInLoadingState
+              renderLoading={() => (
                 <View style={styles.pdfLoading}>
                   <Text style={{ color: '#fff' }}>Carregando PDF...</Text>
                 </View>
               )}
-              onError={() => Alert.alert('Erro', 'Não foi possível carregar o PDF.')}
             />
             {darkMode && (
-              <View
-                style={styles.pdfDarkOverlay}
-                pointerEvents="none"
-              />
+              <View style={styles.pdfDarkOverlay} pointerEvents="none" />
             )}
-            {/* Nota: overlay escurece o PDF mas não inverte cores — limitação do React Native */}
           </View>
         ) : (
           <View style={styles.noContent}>
