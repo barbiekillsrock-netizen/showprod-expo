@@ -17,7 +17,11 @@ export default function PdfAnnotatorScreen({ route, navigation }: any) {
   const { songId, pdfUri, songTitle } = route.params;
 
   const [strokes, setStrokes] = useState<Stroke[]>([]);
+  const strokesRef = React.useRef<Stroke[]>([]);
   const [currentStroke, setCurrentStroke] = useState<Stroke | null>(null);
+
+  // Mantém ref atualizada para uso no cleanup
+  React.useEffect(() => { strokesRef.current = strokes; }, [strokes]);
   const [tool, setTool] = useState<'pen' | 'eraser' | null>('pen'); // caneta ativa por padrão
   const [color, setColor] = useState(COLORS[0]);
   const [width, setWidth] = useState(WIDTHS[0]);
@@ -28,12 +32,12 @@ export default function PdfAnnotatorScreen({ route, navigation }: any) {
     loadAnnotations(songId).then(setStrokes);
   }, [songId]);
 
-  // Salva automaticamente ao sair
+  // Salva automaticamente ao sair — usa ref para ter valor mais recente
   useEffect(() => {
     return () => {
-      saveAnnotations(songId, strokes);
+      saveAnnotations(songId, strokesRef.current);
     };
-  }, [strokes]);
+  }, [songId]);
 
   async function handleSave() {
     await saveAnnotations(songId, strokes);

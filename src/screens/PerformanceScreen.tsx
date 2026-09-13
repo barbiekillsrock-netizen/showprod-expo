@@ -206,6 +206,7 @@ export default function PerformanceScreen({ route, navigation }: any) {
                 pointerEvents="none"
               />
             )}
+            {/* Nota: overlay escurece o PDF mas não inverte cores — limitação do React Native */}
           </View>
         ) : (
           <View style={styles.noContent}>
@@ -269,8 +270,8 @@ const styles = StyleSheet.create({
   pdfDarkOverlay: {
     position: 'absolute',
     top: 0, left: 0, right: 0, bottom: 0,
-    backgroundColor: 'rgba(0,0,0,0.85)',
-    // Escurece o PDF no modo escuro
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    // Escurece o PDF 50% no modo escuro — mais escuro bloquearia a leitura
   },
   nextSong: {
     position: 'absolute', bottom: spacing.md, right: spacing.md,
