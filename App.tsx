@@ -4,7 +4,6 @@ import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { Text } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
-import { StatusBar } from 'expo-status-bar';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 import SongsScreen from './src/screens/SongsScreen';
@@ -12,7 +11,6 @@ import SetlistsScreen from './src/screens/SetlistsScreen';
 import EditorScreen from './src/screens/EditorScreen';
 import SettingsScreen from './src/screens/SettingsScreen';
 import PerformanceScreen from './src/screens/PerformanceScreen';
-import PdfAnnotatorScreen from './src/screens/PdfAnnotatorScreen';
 import { colors } from './src/lib/theme';
 
 const Tab = createBottomTabNavigator();
@@ -52,7 +50,6 @@ function MainTabs() {
 export default function App() {
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
-      <StatusBar style="dark" backgroundColor="#F8F7F4" />
       <SafeAreaProvider>
         <NavigationContainer>
           <Stack.Navigator screenOptions={{ headerShown: false }}>
@@ -60,11 +57,6 @@ export default function App() {
             <Stack.Screen
               name="Performance"
               component={PerformanceScreen}
-              options={{ presentation: 'fullScreenModal' }}
-            />
-            <Stack.Screen
-              name="PdfAnnotator"
-              component={PdfAnnotatorScreen}
               options={{ presentation: 'fullScreenModal' }}
             />
           </Stack.Navigator>

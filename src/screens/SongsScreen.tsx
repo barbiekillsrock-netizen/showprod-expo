@@ -1,11 +1,10 @@
 import React, { useState } from 'react';
 import {
-  View, Text, StyleSheet, Platform, StatusBar as RNStatusBar, FlatList, TouchableOpacity,
+  View, Text, StyleSheet, FlatList, TouchableOpacity,
   TextInput, Alert, Modal, ScrollView, SafeAreaView,
 } from 'react-native';
 import { useSongs, songsStore, GENRES, normalizeKey, isValidKey, type Song } from '../data/songs';
 import { colors, spacing, radius, font } from '../lib/theme';
-import { useNavigation } from '@react-navigation/native';
 import * as DocumentPicker from 'expo-document-picker';
 
 function SongModal({ visible, onClose, editSong }: { visible: boolean; onClose: () => void; editSong?: Song | null }) {
@@ -21,7 +20,6 @@ function SongModal({ visible, onClose, editSong }: { visible: boolean; onClose: 
   const [pdfName, setPdfName] = useState(editSong?.pdfName ?? '');
   const [genreOpen, setGenreOpen] = useState(false);
   const [saving, setSaving] = useState(false);
-  const navigation = useNavigation<any>();
 
   React.useEffect(() => {
     setTitle(editSong?.title ?? '');
@@ -116,16 +114,14 @@ function SongModal({ visible, onClose, editSong }: { visible: boolean; onClose: 
             </TouchableOpacity>
             {genreOpen && (
               <View style={m.dropdown}>
-                <ScrollView style={{ maxHeight: 280 }} nestedScrollEnabled keyboardShouldPersistTaps="handled">
-                  <TouchableOpacity style={m.dropItem} onPress={() => { setGenre(''); setGenreOpen(false); }}>
-                    <Text style={m.dropText}>Nenhum</Text>
+                <TouchableOpacity style={m.dropItem} onPress={() => { setGenre(''); setGenreOpen(false); }}>
+                  <Text style={m.dropText}>Nenhum</Text>
+                </TouchableOpacity>
+                {GENRES.map(g => (
+                  <TouchableOpacity key={g} style={m.dropItem} onPress={() => { setGenre(g); setGenreOpen(false); }}>
+                    <Text style={[m.dropText, genre === g && m.dropTextActive]}>{g}</Text>
                   </TouchableOpacity>
-                  {GENRES.map(g => (
-                    <TouchableOpacity key={g} style={m.dropItem} onPress={() => { setGenre(g); setGenreOpen(false); }}>
-                      <Text style={[m.dropText, genre === g && m.dropTextActive]}>{g}</Text>
-                    </TouchableOpacity>
-                  ))}
-                </ScrollView>
+                ))}
               </View>
             )}
           </View>
@@ -140,23 +136,9 @@ function SongModal({ visible, onClose, editSong }: { visible: boolean; onClose: 
               </TouchableOpacity>
             </View>
             {inputMode === 'pdf' ? (
-              <View>
-                <TouchableOpacity style={m.pdfArea} onPress={pickPdf}>
-                  {pdfUri ? <Text style={m.pdfName}>{pdfName}</Text> : <Text style={m.pdfPlaceholder}>Toque para selecionar PDF</Text>}
-                </TouchableOpacity>
-                {pdfUri && editSong && (
-                  <TouchableOpacity
-                    style={m.annotateBtn}
-                    onPress={() => navigation.navigate('PdfAnnotator', {
-                      songId: editSong.id,
-                      pdfUri,
-                      songTitle: title || editSong.title,
-                    })}
-                  >
-                    <Text style={m.annotateBtnText}>✏️ Abrir PDF e anotar com caneta</Text>
-                  </TouchableOpacity>
-                )}
-              </View>
+              <TouchableOpacity style={m.pdfArea} onPress={pickPdf}>
+                {pdfUri ? <Text style={m.pdfName}>{pdfName}</Text> : <Text style={m.pdfPlaceholder}>Toque para selecionar PDF</Text>}
+              </TouchableOpacity>
             ) : (
               <TextInput style={m.textarea} value={lyrics} onChangeText={setLyrics} multiline textAlignVertical="top" placeholderTextColor={colors.mutedForeground} />
             )}
@@ -167,28 +149,17 @@ function SongModal({ visible, onClose, editSong }: { visible: boolean; onClose: 
   );
 }
 
-function SongCard({ song, onEdit, onDelete, onAnnotate }: {
-  song: Song; onEdit: () => void; onDelete: () => void; onAnnotate: () => void;
-}) {
+function SongCard({ song, onEdit, onDelete }: { song: Song; onEdit: () => void; onDelete: () => void }) {
   return (
-    <View style={s.card}>
-      <TouchableOpacity style={s.cardMain} onPress={onEdit} activeOpacity={0.7}>
-        <View style={s.cardBody}>
-          <Text style={s.cardTitle} numberOfLines={1}>{song.title}</Text>
-          <Text style={s.cardArtist} numberOfLines={1}>{song.artist}</Text>
-          {song.genre ? <Text style={s.cardGenre}>{song.genre}</Text> : null}
-        </View>
-        <View style={s.cardRight}>
-          {song.key ? <View style={s.badge}><Text style={s.badgeText}>{song.key}</Text></View> : null}
-          {song.bpm ? <Text style={s.bpm}>{song.bpm}</Text> : null}
-        </View>
-      </TouchableOpacity>
-      <View style={s.cardActions}>
-        {!!song.pdfUri && (
-          <TouchableOpacity style={s.annotateBtn} onPress={onAnnotate} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
-            <Text style={s.annotateText}>✏️ PDF</Text>
-          </TouchableOpacity>
-        )}
+    <TouchableOpacity style={s.card} onPress={onEdit} activeOpacity={0.7}>
+      <View style={s.cardBody}>
+        <Text style={s.cardTitle} numberOfLines={1}>{song.title}</Text>
+        <Text style={s.cardArtist} numberOfLines={1}>{song.artist}</Text>
+        {song.genre ? <Text style={s.cardGenre}>{song.genre}</Text> : null}
+      </View>
+      <View style={s.cardRight}>
+        {song.key ? <View style={s.badge}><Text style={s.badgeText}>{song.key}</Text></View> : null}
+        {song.bpm ? <Text style={s.bpm}>{song.bpm}</Text> : null}
         <TouchableOpacity onPress={() => Alert.alert('Excluir', `Excluir "${song.title}"?`, [
           { text: 'Cancelar', style: 'cancel' },
           { text: 'Excluir', style: 'destructive', onPress: onDelete },
@@ -196,12 +167,11 @@ function SongCard({ song, onEdit, onDelete, onAnnotate }: {
           <Text style={s.del}>✕</Text>
         </TouchableOpacity>
       </View>
-    </View>
+    </TouchableOpacity>
   );
 }
 
 export default function SongsScreen() {
-  const navigation = useNavigation<any>();
   const songs = useSongs();
   const [showModal, setShowModal] = useState(false);
   const [editSong, setEditSong] = useState<Song | null>(null);
@@ -234,16 +204,7 @@ export default function SongsScreen() {
       ) : (
         <FlatList data={filtered} keyExtractor={s => s.id} contentContainerStyle={s.list}
           renderItem={({ item }) => (
-            <SongCard
-              song={item}
-              onEdit={() => { setEditSong(item); setShowModal(true); }}
-              onDelete={() => songsStore.remove(item.id)}
-              onAnnotate={() => navigation.navigate('PdfAnnotator', {
-                songId: item.id,
-                pdfUri: item.pdfUri,
-                songTitle: item.title,
-              })}
-            />
+            <SongCard song={item} onEdit={() => { setEditSong(item); setShowModal(true); }} onDelete={() => songsStore.remove(item.id)} />
           )} />
       )}
 
@@ -253,7 +214,7 @@ export default function SongsScreen() {
 }
 
 const s = StyleSheet.create({
-  container: { flex: 1, backgroundColor: colors.background, paddingTop: Platform.OS === 'android' ? RNStatusBar.currentHeight ?? 24 : 0 },
+  container: { flex: 1, backgroundColor: colors.background },
   header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: spacing.md, paddingVertical: spacing.sm, borderBottomWidth: 1, borderBottomColor: colors.border },
   logo: { fontSize: 22 },
   logoLight: { fontWeight: font.light, color: colors.foreground },
@@ -263,11 +224,7 @@ const s = StyleSheet.create({
   searchWrap: { paddingHorizontal: spacing.md, paddingVertical: spacing.sm },
   search: { height: 44, backgroundColor: colors.card, borderRadius: radius.md, borderWidth: 1, borderColor: colors.border, paddingHorizontal: spacing.md, fontSize: 15, color: colors.foreground },
   list: { paddingHorizontal: spacing.md, paddingBottom: spacing.md, gap: spacing.sm },
-  card: { backgroundColor: colors.card, borderRadius: radius.lg, borderWidth: 1, borderColor: colors.border, flexDirection: 'row', alignItems: 'center' },
-  cardMain: { flex: 1, flexDirection: 'row', alignItems: 'center', paddingHorizontal: spacing.md, paddingVertical: 12 },
-  cardActions: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, paddingRight: spacing.md },
-  annotateBtn: { backgroundColor: colors.muted, paddingHorizontal: 10, paddingVertical: 6, borderRadius: 8 },
-  annotateText: { fontSize: 12, fontWeight: font.medium, color: colors.foreground },
+  card: { backgroundColor: colors.card, borderRadius: radius.lg, borderWidth: 1, borderColor: colors.border, flexDirection: 'row', alignItems: 'center', paddingHorizontal: spacing.md, paddingVertical: 12 },
   cardBody: { flex: 1, marginRight: spacing.sm },
   cardTitle: { fontSize: 15, fontWeight: font.semibold, color: colors.foreground },
   cardArtist: { fontSize: 13, color: colors.mutedForeground, marginTop: 1 },
@@ -283,7 +240,7 @@ const s = StyleSheet.create({
 });
 
 const m = StyleSheet.create({
-  container: { flex: 1, backgroundColor: colors.background, paddingTop: Platform.OS === 'android' ? RNStatusBar.currentHeight ?? 24 : 0 },
+  container: { flex: 1, backgroundColor: colors.background },
   header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: spacing.md, paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: colors.border },
   title: { fontSize: 16, fontWeight: font.semibold, color: colors.foreground },
   cancel: { fontSize: 15, color: colors.mutedForeground },
@@ -314,6 +271,4 @@ const m = StyleSheet.create({
   pdfName: { fontSize: 13, color: colors.foreground, fontWeight: font.medium },
   pdfPlaceholder: { fontSize: 13, color: colors.mutedForeground },
   textarea: { backgroundColor: colors.card, borderRadius: radius.md, borderWidth: 1, borderColor: colors.border, padding: spacing.md, fontSize: 13, color: colors.foreground, minHeight: 200, fontFamily: 'monospace' },
-  annotateBtn: { backgroundColor: colors.foreground, borderRadius: radius.md, padding: spacing.sm, alignItems: 'center', marginTop: spacing.sm },
-  annotateBtnText: { color: colors.white, fontWeight: font.bold, fontSize: 14 },
 });

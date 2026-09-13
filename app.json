@@ -18,10 +18,7 @@
         "monochromeImage": "./assets/android-icon-monochrome.png"
       },
       "predictiveBackGestureEnabled": false,
-      "package": "com.showprod.app",
-      "permissions": [
-        "READ_EXTERNAL_STORAGE"
-      ]
+      "package": "com.showprod.app"
     },
     "web": {
       "favicon": "./assets/favicon.png"
