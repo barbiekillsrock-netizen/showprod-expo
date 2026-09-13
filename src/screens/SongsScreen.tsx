@@ -168,7 +168,7 @@ function SongCard({ song, onEdit, onDelete, onAnnotate }: {
         </View>
       </TouchableOpacity>
       <View style={s.cardActions}>
-        {song.hasPdf && (
+        {!!song.pdfUri && (
           <TouchableOpacity style={s.annotateBtn} onPress={onAnnotate} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
             <Text style={s.annotateText}>✏️ PDF</Text>
           </TouchableOpacity>
