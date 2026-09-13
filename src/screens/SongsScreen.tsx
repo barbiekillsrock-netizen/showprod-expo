@@ -116,14 +116,16 @@ function SongModal({ visible, onClose, editSong }: { visible: boolean; onClose: 
             </TouchableOpacity>
             {genreOpen && (
               <View style={m.dropdown}>
-                <TouchableOpacity style={m.dropItem} onPress={() => { setGenre(''); setGenreOpen(false); }}>
-                  <Text style={m.dropText}>Nenhum</Text>
-                </TouchableOpacity>
-                {GENRES.map(g => (
-                  <TouchableOpacity key={g} style={m.dropItem} onPress={() => { setGenre(g); setGenreOpen(false); }}>
-                    <Text style={[m.dropText, genre === g && m.dropTextActive]}>{g}</Text>
+                <ScrollView style={{ maxHeight: 280 }} nestedScrollEnabled keyboardShouldPersistTaps="handled">
+                  <TouchableOpacity style={m.dropItem} onPress={() => { setGenre(''); setGenreOpen(false); }}>
+                    <Text style={m.dropText}>Nenhum</Text>
                   </TouchableOpacity>
-                ))}
+                  {GENRES.map(g => (
+                    <TouchableOpacity key={g} style={m.dropItem} onPress={() => { setGenre(g); setGenreOpen(false); }}>
+                      <Text style={[m.dropText, genre === g && m.dropTextActive]}>{g}</Text>
+                    </TouchableOpacity>
+                  ))}
+                </ScrollView>
               </View>
             )}
           </View>
@@ -138,9 +140,23 @@ function SongModal({ visible, onClose, editSong }: { visible: boolean; onClose: 
               </TouchableOpacity>
             </View>
             {inputMode === 'pdf' ? (
-              <TouchableOpacity style={m.pdfArea} onPress={pickPdf}>
-                {pdfUri ? <Text style={m.pdfName}>{pdfName}</Text> : <Text style={m.pdfPlaceholder}>Toque para selecionar PDF</Text>}
-              </TouchableOpacity>
+              <View>
+                <TouchableOpacity style={m.pdfArea} onPress={pickPdf}>
+                  {pdfUri ? <Text style={m.pdfName}>{pdfName}</Text> : <Text style={m.pdfPlaceholder}>Toque para selecionar PDF</Text>}
+                </TouchableOpacity>
+                {pdfUri && editSong && (
+                  <TouchableOpacity
+                    style={m.annotateBtn}
+                    onPress={() => navigation.navigate('PdfAnnotator', {
+                      songId: editSong.id,
+                      pdfUri,
+                      songTitle: title || editSong.title,
+                    })}
+                  >
+                    <Text style={m.annotateBtnText}>✏️ Abrir PDF e anotar com caneta</Text>
+                  </TouchableOpacity>
+                )}
+              </View>
             ) : (
               <TextInput style={m.textarea} value={lyrics} onChangeText={setLyrics} multiline textAlignVertical="top" placeholderTextColor={colors.mutedForeground} />
             )}

@@ -186,10 +186,10 @@ export default function PerformanceScreen({ route, navigation }: any) {
             </TouchableOpacity>
           </ScrollView>
         ) : hasPdf ? (
-          <View style={{ flex: 1, backgroundColor: darkMode ? '#0C0B09' : '#fff' }}>
+          <View style={{ flex: 1 }}>
             <Pdf
               source={{ uri: activeSong.pdfUri, cache: true }}
-              style={[styles.pdf, darkMode && styles.pdfDark]}
+              style={styles.pdf}
               fitPolicy={0}
               horizontal
               enablePaging
@@ -200,6 +200,12 @@ export default function PerformanceScreen({ route, navigation }: any) {
               )}
               onError={() => Alert.alert('Erro', 'Não foi possível carregar o PDF.')}
             />
+            {darkMode && (
+              <View
+                style={styles.pdfDarkOverlay}
+                pointerEvents="none"
+              />
+            )}
           </View>
         ) : (
           <View style={styles.noContent}>
@@ -260,10 +266,11 @@ const styles = StyleSheet.create({
   pdf: { flex: 1, width: W },
   pdfLoading: { flex: 1, alignItems: 'center', justifyContent: 'center' },
   noContent: { flex: 1, alignItems: 'center', justifyContent: 'center' },
-  pdfDark: {
-    backgroundColor: '#0C0B09',
-    // Inverte as cores do PDF no modo escuro
-    tintColor: '#E8E0D0',
+  pdfDarkOverlay: {
+    position: 'absolute',
+    top: 0, left: 0, right: 0, bottom: 0,
+    backgroundColor: 'rgba(0,0,0,0.85)',
+    // Escurece o PDF no modo escuro
   },
   nextSong: {
     position: 'absolute', bottom: spacing.md, right: spacing.md,
