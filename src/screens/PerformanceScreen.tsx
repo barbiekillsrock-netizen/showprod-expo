@@ -186,19 +186,21 @@ export default function PerformanceScreen({ route, navigation }: any) {
             </TouchableOpacity>
           </ScrollView>
         ) : hasPdf ? (
-          <Pdf
-            source={{ uri: activeSong.pdfUri, cache: true }}
-            style={[styles.pdf, { backgroundColor: bg }]}
-            fitPolicy={0}
-            horizontal
-            enablePaging
-            renderActivityIndicator={() => (
-              <View style={styles.pdfLoading}>
-                <Text style={{ color: '#fff' }}>Carregando PDF...</Text>
-              </View>
-            )}
-            onError={() => Alert.alert('Erro', 'Não foi possível carregar o PDF.')}
-          />
+          <View style={{ flex: 1, backgroundColor: darkMode ? '#0C0B09' : '#fff' }}>
+            <Pdf
+              source={{ uri: activeSong.pdfUri, cache: true }}
+              style={[styles.pdf, darkMode && styles.pdfDark]}
+              fitPolicy={0}
+              horizontal
+              enablePaging
+              renderActivityIndicator={() => (
+                <View style={styles.pdfLoading}>
+                  <Text style={{ color: '#fff' }}>Carregando PDF...</Text>
+                </View>
+              )}
+              onError={() => Alert.alert('Erro', 'Não foi possível carregar o PDF.')}
+            />
+          </View>
         ) : (
           <View style={styles.noContent}>
             <Text style={{ color: colors.darkMuted, fontSize: 16 }}>Nenhum conteúdo</Text>
@@ -258,6 +260,11 @@ const styles = StyleSheet.create({
   pdf: { flex: 1, width: W },
   pdfLoading: { flex: 1, alignItems: 'center', justifyContent: 'center' },
   noContent: { flex: 1, alignItems: 'center', justifyContent: 'center' },
+  pdfDark: {
+    backgroundColor: '#0C0B09',
+    // Inverte as cores do PDF no modo escuro
+    tintColor: '#E8E0D0',
+  },
   nextSong: {
     position: 'absolute', bottom: spacing.md, right: spacing.md,
     flexDirection: 'row', alignItems: 'center',

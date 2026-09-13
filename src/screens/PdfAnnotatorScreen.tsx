@@ -18,7 +18,7 @@ export default function PdfAnnotatorScreen({ route, navigation }: any) {
 
   const [strokes, setStrokes] = useState<Stroke[]>([]);
   const [currentStroke, setCurrentStroke] = useState<Stroke | null>(null);
-  const [tool, setTool] = useState<'pen' | 'eraser' | null>(null);
+  const [tool, setTool] = useState<'pen' | 'eraser' | null>('pen'); // caneta ativa por padrão
   const [color, setColor] = useState(COLORS[0]);
   const [width, setWidth] = useState(WIDTHS[0]);
   const [saved, setSaved] = useState(false);
@@ -27,6 +27,13 @@ export default function PdfAnnotatorScreen({ route, navigation }: any) {
   useEffect(() => {
     loadAnnotations(songId).then(setStrokes);
   }, [songId]);
+
+  // Salva automaticamente ao sair
+  useEffect(() => {
+    return () => {
+      saveAnnotations(songId, strokes);
+    };
+  }, [strokes]);
 
   async function handleSave() {
     await saveAnnotations(songId, strokes);
@@ -95,7 +102,7 @@ export default function PdfAnnotatorScreen({ route, navigation }: any) {
         <TouchableOpacity onPress={() => navigation.goBack()} style={s.backBtn}>
           <Text style={s.backText}>← Voltar</Text>
         </TouchableOpacity>
-        <Text style={s.headerTitle} numberOfLines={1}>{songTitle}</Text>
+        <Text style={s.headerTitle} numberOfLines={1}>✏️ {songTitle}</Text>
         <TouchableOpacity
           style={[s.saveBtn, saved && s.savedBtn]}
           onPress={handleSave}
