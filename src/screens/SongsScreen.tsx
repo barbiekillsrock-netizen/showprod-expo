@@ -6,6 +6,7 @@ import {
 import { useSongs, songsStore, GENRES, normalizeKey, isValidKey, type Song } from '../data/songs';
 import { colors, spacing, radius, font } from '../lib/theme';
 import * as DocumentPicker from 'expo-document-picker';
+import { useNavigation } from '@react-navigation/native';
 
 function SongModal({ visible, onClose, editSong }: { visible: boolean; onClose: () => void; editSong?: Song | null }) {
   const navigation = useNavigation<any>();

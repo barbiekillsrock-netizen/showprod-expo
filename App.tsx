@@ -11,6 +11,7 @@ import SetlistsScreen from './src/screens/SetlistsScreen';
 import EditorScreen from './src/screens/EditorScreen';
 import SettingsScreen from './src/screens/SettingsScreen';
 import PerformanceScreen from './src/screens/PerformanceScreen';
+import PdfAnnotatorScreen from './src/screens/PdfAnnotatorScreen';
 import { colors } from './src/lib/theme';
 
 const Tab = createBottomTabNavigator();
@@ -57,6 +58,11 @@ export default function App() {
             <Stack.Screen
               name="Performance"
               component={PerformanceScreen}
+              options={{ presentation: 'fullScreenModal' }}
+            />
+            <Stack.Screen
+              name="PdfAnnotator"
+              component={PdfAnnotatorScreen}
               options={{ presentation: 'fullScreenModal' }}
             />
           </Stack.Navigator>
