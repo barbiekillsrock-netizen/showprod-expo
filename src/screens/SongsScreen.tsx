@@ -172,29 +172,48 @@ function SongModal({ visible, onClose, editSong }: { visible: boolean; onClose: 
   );
 }
 
-function SongCard({ song, onEdit, onDelete }: { song: Song; onEdit: () => void; onDelete: () => void }) {
+function SongCard({ song, onEdit, onDelete, onAnnotate }: {
+  song: Song; onEdit: () => void; onDelete: () => void; onAnnotate: () => void;
+}) {
   return (
-    <TouchableOpacity style={s.card} onPress={onEdit} activeOpacity={0.7}>
-      <View style={s.cardBody}>
-        <Text style={s.cardTitle} numberOfLines={1}>{song.title}</Text>
-        <Text style={s.cardArtist} numberOfLines={1}>{song.artist}</Text>
-        {song.genre ? <Text style={s.cardGenre}>{song.genre}</Text> : null}
-      </View>
-      <View style={s.cardRight}>
-        {song.key ? <View style={s.badge}><Text style={s.badgeText}>{song.key}</Text></View> : null}
-        {song.bpm ? <Text style={s.bpm}>{song.bpm}</Text> : null}
-        <TouchableOpacity onPress={() => Alert.alert('Excluir', `Excluir "${song.title}"?`, [
-          { text: 'Cancelar', style: 'cancel' },
-          { text: 'Excluir', style: 'destructive', onPress: onDelete },
-        ])} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
+    <View style={s.card}>
+      <TouchableOpacity style={s.cardMain} onPress={onEdit} activeOpacity={0.7}>
+        <View style={s.cardBody}>
+          <Text style={s.cardTitle} numberOfLines={1}>{song.title}</Text>
+          <Text style={s.cardArtist} numberOfLines={1}>{song.artist}</Text>
+          {song.genre ? <Text style={s.cardGenre}>{song.genre}</Text> : null}
+        </View>
+        <View style={s.cardRight}>
+          {song.key ? <View style={s.badge}><Text style={s.badgeText}>{song.key}</Text></View> : null}
+          {song.bpm ? <Text style={s.bpm}>{song.bpm}</Text> : null}
+        </View>
+      </TouchableOpacity>
+      <View style={s.cardActions}>
+        {!!song.pdfUri && (
+          <TouchableOpacity
+            style={s.annotateBtn}
+            onPress={onAnnotate}
+            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+          >
+            <Text style={s.annotateText}>✏️ PDF</Text>
+          </TouchableOpacity>
+        )}
+        <TouchableOpacity
+          onPress={() => Alert.alert('Excluir', `Excluir "${song.title}"?`, [
+            { text: 'Cancelar', style: 'cancel' },
+            { text: 'Excluir', style: 'destructive', onPress: onDelete },
+          ])}
+          hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+        >
           <Text style={s.del}>✕</Text>
         </TouchableOpacity>
       </View>
-    </TouchableOpacity>
+    </View>
   );
 }
 
 export default function SongsScreen() {
+  const navigation = useNavigation<any>();
   const songs = useSongs();
   const [showModal, setShowModal] = useState(false);
   const [editSong, setEditSong] = useState<Song | null>(null);
@@ -227,7 +246,16 @@ export default function SongsScreen() {
       ) : (
         <FlatList data={filtered} keyExtractor={s => s.id} contentContainerStyle={s.list}
           renderItem={({ item }) => (
-            <SongCard song={item} onEdit={() => { setEditSong(item); setShowModal(true); }} onDelete={() => songsStore.remove(item.id)} />
+            <SongCard
+              song={item}
+              onEdit={() => { setEditSong(item); setShowModal(true); }}
+              onDelete={() => songsStore.remove(item.id)}
+              onAnnotate={() => navigation.navigate('PdfAnnotator', {
+                songId: item.id,
+                pdfUri: item.pdfUri,
+                songTitle: item.title,
+              })}
+            />
           )} />
       )}
 
@@ -247,7 +275,11 @@ const s = StyleSheet.create({
   searchWrap: { paddingHorizontal: spacing.md, paddingVertical: spacing.sm },
   search: { height: 44, backgroundColor: colors.card, borderRadius: radius.md, borderWidth: 1, borderColor: colors.border, paddingHorizontal: spacing.md, fontSize: 15, color: colors.foreground },
   list: { paddingHorizontal: spacing.md, paddingBottom: spacing.md, gap: spacing.sm },
-  card: { backgroundColor: colors.card, borderRadius: radius.lg, borderWidth: 1, borderColor: colors.border, flexDirection: 'row', alignItems: 'center', paddingHorizontal: spacing.md, paddingVertical: 12 },
+  card: { backgroundColor: colors.card, borderRadius: radius.lg, borderWidth: 1, borderColor: colors.border, flexDirection: 'row', alignItems: 'center' },
+  cardMain: { flex: 1, flexDirection: 'row', alignItems: 'center', paddingHorizontal: spacing.md, paddingVertical: 12 },
+  cardActions: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, paddingRight: spacing.md },
+  annotateBtn: { backgroundColor: colors.muted, paddingHorizontal: 8, paddingVertical: 5, borderRadius: 8 },
+  annotateText: { fontSize: 11, fontWeight: font.medium, color: colors.foreground },
   cardBody: { flex: 1, marginRight: spacing.sm },
   cardTitle: { fontSize: 15, fontWeight: font.semibold, color: colors.foreground },
   cardArtist: { fontSize: 13, color: colors.mutedForeground, marginTop: 1 },
