@@ -3,7 +3,7 @@ import {
   View, Text, StyleSheet, TouchableOpacity, Alert,
   PanResponder, Dimensions, SafeAreaView, StatusBar,
 } from 'react-native';
-import PDFReader from 'rn-pdf-reader-js';
+import { WebView } from 'react-native-webview';
 import { loadAnnotations, saveAnnotations, clearAnnotations, type Stroke } from '../lib/annotations';
 import { colors, spacing, font } from '../lib/theme';
 
@@ -130,9 +130,11 @@ export default function PdfAnnotatorScreen({ route, navigation }: any) {
       <View style={s.stage}>
         {/* PDF por baixo */}
         <View style={StyleSheet.absoluteFill} pointerEvents="none">
-          <PDFReader
+          <WebView
             source={{ uri: pdfUri }}
             style={s.pdf}
+            originWhitelist={['*']}
+            startInLoadingState
           />
         </View>
 

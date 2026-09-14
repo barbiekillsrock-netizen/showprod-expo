@@ -4,7 +4,7 @@ import {
   PanResponder, Dimensions, StatusBar, Alert,
 } from 'react-native';
 import { useKeepAwake } from 'expo-keep-awake';
-import PDFReader from 'rn-pdf-reader-js';
+import { WebView } from 'react-native-webview';
 import { colors, spacing, font } from '../lib/theme';
 import type { Song } from '../data/songs';
 
@@ -186,9 +186,11 @@ export default function PerformanceScreen({ route, navigation }: any) {
             </TouchableOpacity>
           </ScrollView>
         ) : hasPdf ? (
-          <PDFReader
+          <WebView
             source={{ uri: activeSong.pdfUri }}
             style={styles.pdf}
+            originWhitelist={['*']}
+            startInLoadingState
           />
         ) : (
           <View style={styles.noContent}>
