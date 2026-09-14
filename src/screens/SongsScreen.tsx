@@ -8,6 +8,7 @@ import { colors, spacing, radius, font } from '../lib/theme';
 import * as DocumentPicker from 'expo-document-picker';
 
 function SongModal({ visible, onClose, editSong }: { visible: boolean; onClose: () => void; editSong?: Song | null }) {
+  const navigation = useNavigation<any>();
   const [title, setTitle] = useState(editSong?.title ?? '');
   const [artist, setArtist] = useState(editSong?.artist ?? '');
   const [key, setKey] = useState(editSong?.key ?? '');
@@ -138,9 +139,28 @@ function SongModal({ visible, onClose, editSong }: { visible: boolean; onClose: 
               </TouchableOpacity>
             </View>
             {inputMode === 'pdf' ? (
-              <TouchableOpacity style={m.pdfArea} onPress={pickPdf}>
-                {pdfUri ? <Text style={m.pdfName}>{pdfName}</Text> : <Text style={m.pdfPlaceholder}>Toque para selecionar PDF</Text>}
-              </TouchableOpacity>
+              <View>
+                <TouchableOpacity style={m.pdfArea} onPress={pickPdf}>
+                  {pdfUri ? <Text style={m.pdfName}>{pdfName}</Text> : <Text style={m.pdfPlaceholder}>Toque para selecionar PDF</Text>}
+                </TouchableOpacity>
+                {pdfUri && editSong && (
+                  <TouchableOpacity
+                    style={m.annotateBtn}
+                    onPress={() => {
+                      onClose();
+                      setTimeout(() => {
+                        navigation.navigate('PdfAnnotator', {
+                          songId: editSong.id,
+                          pdfUri,
+                          songTitle: title,
+                        });
+                      }, 300);
+                    }}
+                  >
+                    <Text style={m.annotateBtnText}>✏️ Abrir PDF e anotar com caneta</Text>
+                  </TouchableOpacity>
+                )}
+              </View>
             ) : (
               <TextInput style={m.textarea} value={lyrics} onChangeText={setLyrics} multiline textAlignVertical="top" placeholderTextColor={colors.mutedForeground} />
             )}
@@ -273,4 +293,6 @@ const m = StyleSheet.create({
   pdfName: { fontSize: 13, color: colors.foreground, fontWeight: font.medium },
   pdfPlaceholder: { fontSize: 13, color: colors.mutedForeground },
   textarea: { backgroundColor: colors.card, borderRadius: radius.md, borderWidth: 1, borderColor: colors.border, padding: spacing.md, fontSize: 13, color: colors.foreground, minHeight: 200, fontFamily: 'monospace' },
+  annotateBtn: { backgroundColor: colors.foreground, borderRadius: radius.md, padding: 14, alignItems: 'center', marginTop: spacing.sm },
+  annotateBtnText: { color: colors.white, fontWeight: font.bold, fontSize: 14 },
 });
