@@ -114,14 +114,16 @@ function SongModal({ visible, onClose, editSong }: { visible: boolean; onClose: 
             </TouchableOpacity>
             {genreOpen && (
               <View style={m.dropdown}>
-                <TouchableOpacity style={m.dropItem} onPress={() => { setGenre(''); setGenreOpen(false); }}>
-                  <Text style={m.dropText}>Nenhum</Text>
-                </TouchableOpacity>
-                {GENRES.map(g => (
-                  <TouchableOpacity key={g} style={m.dropItem} onPress={() => { setGenre(g); setGenreOpen(false); }}>
-                    <Text style={[m.dropText, genre === g && m.dropTextActive]}>{g}</Text>
+                <ScrollView nestedScrollEnabled keyboardShouldPersistTaps="handled" style={{ maxHeight: 260 }}>
+                  <TouchableOpacity style={m.dropItem} onPress={() => { setGenre(''); setGenreOpen(false); }}>
+                    <Text style={m.dropText}>Nenhum</Text>
                   </TouchableOpacity>
-                ))}
+                  {GENRES.map(g => (
+                    <TouchableOpacity key={g} style={m.dropItem} onPress={() => { setGenre(g); setGenreOpen(false); }}>
+                      <Text style={[m.dropText, genre === g && m.dropTextActive]}>{g}</Text>
+                    </TouchableOpacity>
+                  ))}
+                </ScrollView>
               </View>
             )}
           </View>
