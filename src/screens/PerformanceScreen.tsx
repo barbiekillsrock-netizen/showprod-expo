@@ -4,9 +4,9 @@ import {
   PanResponder, Dimensions, StatusBar, Alert,
 } from 'react-native';
 import { useKeepAwake } from 'expo-keep-awake';
+import PDFReader from 'rn-pdf-reader-js';
 import { colors, spacing, font } from '../lib/theme';
 import type { Song } from '../data/songs';
-import Pdf from 'react-native-pdf';
 
 const { width: W } = Dimensions.get('window');
 const SWIPE_THRESHOLD = 60;
@@ -186,18 +186,9 @@ export default function PerformanceScreen({ route, navigation }: any) {
             </TouchableOpacity>
           </ScrollView>
         ) : hasPdf ? (
-          <Pdf
-            source={{ uri: activeSong.pdfUri, cache: true }}
-            style={[styles.pdf, { backgroundColor: bg }]}
-            fitPolicy={0}
-            horizontal
-            enablePaging
-            renderActivityIndicator={() => (
-              <View style={styles.pdfLoading}>
-                <Text style={{ color: '#fff' }}>Carregando PDF...</Text>
-              </View>
-            )}
-            onError={() => Alert.alert('Erro', 'Não foi possível carregar o PDF.')}
+          <PDFReader
+            source={{ uri: activeSong.pdfUri }}
+            style={styles.pdf}
           />
         ) : (
           <View style={styles.noContent}>
